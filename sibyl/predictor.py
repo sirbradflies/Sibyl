@@ -14,7 +14,7 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import accuracy_score, r2_score, make_scorer
 
-from sibyl.encoders.omniencoder import OmniEncoder
+from sibyl.experimental.omniencoder import OmniEncoder
 from sibyl.models.kerasdense import KerasDenseRegressor, KerasDenseClassifier
 
 PARAMS = {"pca__n_components": [None, 0.99, 0.90],
@@ -43,26 +43,32 @@ class SibylBase(Pipeline):
         """
         Randomized search for the best model and return the best model score.
 
-        :param X: array-like of shape (n_samples, n_features)
+        Parameters
+        ----------
+        X: array-like of shape (n_samples, n_features)
             Training vector, where n_samples is the number of samples and
             n_features is the number of features.
-        :param y: array-like of shape (n_samples, n_output) \
+        y: array-like of shape (n_samples, n_output) \
             or (n_samples,), default=None
             Target relative to X for classification or regression;
             None for unsupervised learning.
-        :param params: dict of str -> object, default = standard Keras params
+        params: dict of str -> object, default = standard Keras params
             Parameters passed to the ``fit`` method of the estimator.
-        :param groups: array-like of shape (n_samples,), default=None
+        groups: array-like of shape (n_samples,), default=None
             Group labels for the samples used while splitting the dataset into
             train/test set. Only used in conjunction with a "Group" :term:`cv`
             instance (e.g., :class:`~sklearn.model_selection.GroupKFold`).
-        :param cv: int, default=None
+        cv: int, default=None
         Cross-validation generator or an iterable.
-        :param n_iter: int, default=10
+        n_iter: int, default=10
         Number of search iterations to perform.
-        :param n_jobs: int, default=None
+        n_jobs: int, default=None
         Number of jobs to run in parallel.
-        :return: float with best score found during the search
+
+        Returns
+        ----------
+        float
+            Best score found during the search
         """
         search = RandomizedSearchCV(self, params, scoring=self.scorer,
                                     refit=False, verbose=5, cv=cv,
@@ -85,7 +91,10 @@ class SibylBase(Pipeline):
     def save(self, file):
         """
         Save predictor pipeline to a file
-        :param file: file name or IO object
+
+        Parameters
+        ----------
+        file: file name or IO object
         """
         if type(file) == str:
             with open(file, "wb") as f:
@@ -97,7 +106,10 @@ class SibylBase(Pipeline):
 def load(file):
     """
     Load predictor pipeline from a file
-    :param file: file name or IO object
+
+    Parameters
+    ----------
+    file: file name or IO object
     """
     if type(file) == str:
         with open(file, "rb") as f:
@@ -122,7 +134,8 @@ class SibylClassifier(SibylBase):
         if steps is None:
             steps = [("omni", OmniEncoder()),
                      ("pca", PCA()),
-                     ("model", KerasDenseClassifier())]
+                     ("model", KerasDenseClassifier(val_split=0.2,
+                                                    n_iter_no_change=1))]
         if scorer is None:
             scorer = make_scorer(accuracy_score)
         super(SibylClassifier, self).__init__(steps=steps, scorer=scorer)
@@ -144,7 +157,8 @@ class SibylRegressor(SibylBase):
         if steps is None:
             steps = [("omni", OmniEncoder()),
                      ("pca", PCA()),
-                     ("model", KerasDenseRegressor())]
+                     ("model", KerasDenseRegressor(val_split=0.2,
+                                                   n_iter_no_change=1))]
         if scorer is None:
             scorer = make_scorer(r2_score)
         super(SibylRegressor, self).__init__(steps=steps, scorer=scorer)

@@ -15,7 +15,6 @@ from sklearn.preprocessing import OneHotEncoder
 from tensorflow.keras.layers import Dense, Flatten, BatchNormalization, Dropout
 from tensorflow.keras.callbacks import EarlyStopping, TensorBoard
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
-#keras.backend.set_floatx("float16")  # TODO: Fix issue with nan loss
 
 TMP_PATH = os.path.join(tempfile.gettempdir(), "state")  # TODO: Use tempfile.TemporaryFile?
 
@@ -130,7 +129,7 @@ class KerasDenseClassifier(KerasDenseRegressor, ClassifierMixin):
                          tensorboard=tensorboard,
                          custom_objects=custom_objects)
 
-    def fit(self, X, y):  # Suboptimally using Softmax also for 2-class problems
+    def fit(self, X, y):  # Suboptimally using Softmax also for 2-class (binary) problems
         if y.ndim == 1:
             y = np.array(y).reshape(-1, 1)
         y_enc = self.encoder.fit_transform(y)
