@@ -14,7 +14,7 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import accuracy_score, r2_score, make_scorer
 
-from sibyl.experimental.omniencoder import OmniEncoder
+from sibyl.encoders.omniencoder import OmniEncoder
 from sibyl.models.kerasdense import KerasDenseRegressor, KerasDenseClassifier
 
 PARAMS = {"pca__n_components": [None, 0.99, 0.90],
@@ -26,13 +26,11 @@ class SibylBase(Pipeline):
     """
     Simple AutoML class to solve basic ML tasks.
 
-    Attributes
-    ----------
-    steps : list
-        List of (name, transform) tuples (implementing fit/transform)
-        with the last object an estimator.
-    scorer : function or a dict
-        Scorer for model cross validation.
+    :param steps : list
+    List of (name, transform) tuples (implementing fit/transform)
+    with the last object an estimator.
+    :param scorer : str or Scorer
+    Scorer for model cross validation.
     """
     def __init__(self, steps, scorer):
         self.scorer = scorer
@@ -41,34 +39,22 @@ class SibylBase(Pipeline):
     def search(self, X, y, params=PARAMS, groups=None,
                cv=None, n_iter=10, n_jobs=-1):
         """
-        Randomized search for the best model and return the best model score.
+        Random search for the best model and return the search results
 
-        Parameters
-        ----------
-        X: array-like of shape (n_samples, n_features)
-            Training vector, where n_samples is the number of samples and
-            n_features is the number of features.
-        y: array-like of shape (n_samples, n_output) \
-            or (n_samples,), default=None
-            Target relative to X for classification or regression;
-            None for unsupervised learning.
-        params: dict of str -> object, default = standard Keras params
-            Parameters passed to the ``fit`` method of the estimator.
-        groups: array-like of shape (n_samples,), default=None
-            Group labels for the samples used while splitting the dataset into
-            train/test set. Only used in conjunction with a "Group" :term:`cv`
-            instance (e.g., :class:`~sklearn.model_selection.GroupKFold`).
-        cv: int, default=None
-        Cross-validation generator or an iterable.
-        n_iter: int, default=10
-        Number of search iterations to perform.
-        n_jobs: int, default=None
-        Number of jobs to run in parallel.
-
-        Returns
-        ----------
-        float
-            Best score found during the search
+        :param X : Dataframe or Array
+        Features for training
+        :param Y : Series or Array
+        Target for training
+        :param groups : array-like of shape (n_samples,), default=None
+        Group labels for the samples used while splitting the dataset into train/test set.
+        :param cv : int, cross-validation generator or an iterable, default=None
+        Cross-validation splitting strategy (see SciKit learn docs for more details)
+        :param n_iter : int, default=10
+        Number of parameter settings that are sampled (see SciKit learn docs for more details).
+        :param n_jobs : int, default=-1
+        Number of jobs to run in parallel. None means 1 unless in a
+        joblib.parallel_backend context. -1 means using all processors.
+        :return Dataframe with search results
         """
         search = RandomizedSearchCV(self, params, scoring=self.scorer,
                                     refit=False, verbose=5, cv=cv,
@@ -76,9 +62,8 @@ class SibylBase(Pipeline):
         search.fit(X, y, groups=groups)
         self.set_params(**search.best_params_).fit(X, y)
         results = pd.DataFrame(search.cv_results_).sort_values("rank_test_score")
-        print(results[["params", "mean_test_score",
-                       "std_test_score", "mean_fit_time"]].to_string())
-        return search.best_score_
+        return results[["params", "mean_test_score",
+                        "std_test_score", "mean_fit_time"]]
 
     def score(self, X, y):
         """ Score features X against target y """
@@ -89,13 +74,6 @@ class SibylBase(Pipeline):
         return "Sibyl_"+"_".join(steps)
 
     def save(self, file):
-        """
-        Save predictor pipeline to a file
-
-        Parameters
-        ----------
-        file: file name or IO object
-        """
         if type(file) == str:
             with open(file, "wb") as f:
                 joblib.dump(self, f)
@@ -104,13 +82,6 @@ class SibylBase(Pipeline):
 
 
 def load(file):
-    """
-    Load predictor pipeline from a file
-
-    Parameters
-    ----------
-    file: file name or IO object
-    """
     if type(file) == str:
         with open(file, "rb") as f:
             return joblib.load(f)
@@ -120,45 +91,45 @@ def load(file):
 
 class SibylClassifier(SibylBase):
     """
-    Simple AutoML classifier to solve basic ML tasks.
+        Set up the SybilClassifier with the desired steps
 
-    Attributes
-    ----------
-    steps : list, default = OmniEncoder, PCA, KerasDenseClassifier
-        List of (name, transform) tuples (implementing fit/transform)
-        with the last object an estimator.
-    scorer : function or a dict, default = accuracy score
-        Scorer for model cross validation.
+        :param steps: List of tuples, default None. If None it defaults to the following steps:
+        [("omni", OmniEncoder()), ("pca", PCA()), ("catboost", CatBoostClassifier(logging_level='Silent'))].
+        Same as Pipeline, accepts a list of tuples ("STEP_NAME", "ESTIMATOR")
+        :param scorer: SKLearn compatible scorer, default None. If None defaults to F1 score.
+
+    Examples
+    --------
+    >>> from sklearn.svm import SVC
+    >>> from sklearn.preprocessing import StandardScaler
+    >>> from sklearn.datasets import make_classification
+    >>> from sklearn.model_selection import train_test_split
+    >>> from sklearn.pipeline import Pipeline
+    >>> X, y = make_classification(random_state=0)
+    >>> X_train, X_test, y_train, y_test = train_test_split(X, y,
+    ...                                                     random_state=0)
+    >>> pipe = Pipeline([('scaler', StandardScaler()), ('svc', SVC())])
+    >>> pipe.fit(X_train, y_train)
+    Pipeline(steps=[('scaler', StandardScaler()), ('svc', SVC())])
+    >>> pipe.score(X_test, y_test)
+    0.88
     """
     def __init__(self, steps=None, scorer=None):
         if steps is None:
             steps = [("omni", OmniEncoder()),
                      ("pca", PCA()),
-                     ("model", KerasDenseClassifier(val_split=0.2,
-                                                    n_iter_no_change=1))]
+                     ("model", KerasDenseClassifier())]
         if scorer is None:
             scorer = make_scorer(accuracy_score)
         super(SibylClassifier, self).__init__(steps=steps, scorer=scorer)
 
 
 class SibylRegressor(SibylBase):
-    """
-    Simple AutoML regressor to solve basic ML tasks.
-
-    Attributes
-    ----------
-    steps : list, default = OmniEncoder, PCA, KerasDenseRegressor
-        List of (name, transform) tuples (implementing fit/transform)
-        with the last object an estimator.
-    scorer : function or a dict, default = accuracy score
-        Scorer for model cross validation.
-    """
     def __init__(self, steps=None, scorer=None):
         if steps is None:
             steps = [("omni", OmniEncoder()),
                      ("pca", PCA()),
-                     ("model", KerasDenseRegressor(val_split=0.2,
-                                                   n_iter_no_change=1))]
+                     ("model", KerasDenseRegressor())]
         if scorer is None:
             scorer = make_scorer(r2_score)
         super(SibylRegressor, self).__init__(steps=steps, scorer=scorer)

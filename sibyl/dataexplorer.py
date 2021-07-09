@@ -12,21 +12,20 @@ import base64 as b64
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
-
-from sibyl.experimental import omniencoder as dt
-
 rcParams.update({"figure.autolayout": True})
 sns.set_style("whitegrid")
 sns.set_palette("Blues")
 
+from sibyl.encoders import omniencoder as dt
 
-def analyze_dataset(dataset, target_column=None, max_points=None):
+
+def analyze_dataset(dataset, target=None, max_points=None):
     """ Explore dataset through most common analyses """
     data = pd.DataFrame(dataset) if type(dataset) != pd.DataFrame else dataset
     data = data.sample(max_points) if max_points is not None else dataset
     data_types = {col: dt.get_type(data[col]) for col in data.columns}
-    valid_columns = [c for c in data_types.keys() if data_types[c] != dt.IGNORE]
-    num_columns = [c for c in valid_columns if data_types[c] == dt.NUM_TYPE]
+    valid_columns = [c for c in data_types.keys() if data_types[c]!=dt.IGNORE]
+    num_columns = [c for c in valid_columns if data_types[c]==dt.NUM_TYPE]
     data[num_columns] = data[num_columns].apply(pd.to_numeric)
 
     # Sample datapoints
@@ -50,26 +49,26 @@ def analyze_dataset(dataset, target_column=None, max_points=None):
     content += [html_charts]
 
     # Features relationship with target
-    if target_column is not None:
+    if target is not None:
         titles += ["Features relationship with target"]
         html_charts = ""
-        features = [f for f in valid_columns if f != target_column]
+        features = [f for f in valid_columns if f != target]
         for feature in features:
-            clean_data = data[[feature, target_column]]
-            plot(clean_data[feature], clean_data[target_column])
+            clean_data = data[[feature, target]]
+            plot(clean_data[feature], clean_data[target])
             html_charts += plot2html(plt) + "\n"
         content += [html_charts]
     return create_html_report(titles, content)
 
 
-def plot2html(mplot, width=10, height=5):
+def plot2html(plot, width=10, height=5):
     """ Convert a matplotlib plot to an embeddable html snippet """
-    figure = mplot.gcf()
+    figure = plot.gcf()
     figure.set_size_inches(width, height)
     hist_img = io.BytesIO()
-    mplot.savefig(hist_img)
-    mplot.show()
-    mplot.clf()
+    plot.savefig(hist_img)
+    plot.show()
+    plot.clf()
     hist_enc = b64.b64encode(hist_img.getvalue()).decode("utf-8")
     return f"<img src=\"data:image/png;base64,{hist_enc}\">"
 
@@ -132,7 +131,7 @@ def plot_multivariate(X, y, x_type, y_type, ax):
         df = pd.concat((X, y), axis=1)
         df["text length"] = X.apply(lambda x: len(x.split()))
         for tgt in df[y.name].unique():
-            tgt_lengths = df[df[y.name] == tgt]
+            tgt_lengths = df[df[y.name]==tgt]
             ax = sns.distplot(tgt_lengths["text length"], norm_hist=False,
                               kde=False, label=tgt, ax=ax)
         ax.legend()
