@@ -1,5 +1,5 @@
 """
-Represent a type of data in a ML dataset
+Encode multiple data types before ML pipeline feature processing and model training
 @author: Francesco Baldisserri
 @creation date: 24/06/2020
 """

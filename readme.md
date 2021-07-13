@@ -1,4 +1,4 @@
-#Sibyl-AI
+# Sibyl-AI
 ##### Provided under MIT License by Francesco Baldisserri
 *Note: this library may be subtly broken or buggy. The code is released under
 the MIT License – please take the following message to heart:*
@@ -9,7 +9,7 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 > 
-##Benefits
+## Benefits
 - Sibyl is a simple wrapper of SciKit Learn Pipeline
 - The default pipeline steps can be used as a simple AutoML tool
 - The package includes Keras and Catboost serializable wrappers to be able to use these models with the Pipeline and save them as any other SKLearn estimator
