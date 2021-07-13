@@ -45,6 +45,13 @@ class SibylBase(Pipeline):
         Features for training
         :param Y : Series or Array
         Target for training
+        :param params : Dictionary or list of Dictionaries
+        Default parameters for standard pipeline are:
+        >>>{"pca__n_components": [None, 0.99, 0.90],
+        >>> "model__units": [(64,), (64, 64), (64, 64, 64)],
+        >>> "model__batch_norm": [True, False]}
+        Search parameters to be used with the pipeline as in SKLearn RandomizedGridSearchCV.
+        Required if the pipeline steps are customized.
         :param groups : array-like of shape (n_samples,), default=None
         Group labels for the samples used while splitting the dataset into train/test set.
         :param cv : int, cross-validation generator or an iterable, default=None
@@ -74,6 +81,12 @@ class SibylBase(Pipeline):
         return "Sibyl_"+"_".join(steps)
 
     def save(self, file):
+        """
+        Save the complete predictor pipeline
+
+        :param file : ByteStream or string
+        Save the file in the bytestream or path passed
+        """
         if type(file) == str:
             with open(file, "wb") as f:
                 joblib.dump(self, f)
@@ -82,6 +95,13 @@ class SibylBase(Pipeline):
 
 
 def load(file):
+    """
+    Load the complete predictor pipeline
+
+    :param file : ByteStream or string
+    Load the file from the bytestream or path passed
+    :return : Predictor pipeline with the saved status
+    """
     if type(file) == str:
         with open(file, "rb") as f:
             return joblib.load(f)
@@ -94,9 +114,9 @@ class SibylClassifier(SibylBase):
         Set up the SybilClassifier with the desired steps
 
         :param steps: List of tuples, default None. If None it defaults to the following steps:
-        [("omni", OmniEncoder()), ("pca", PCA()), ("catboost", CatBoostClassifier(logging_level='Silent'))].
+        [("omni", OmniEncoder()), ("pca", PCA()), ("model", KerasDenseClassifier())].
         Same as Pipeline, accepts a list of tuples ("STEP_NAME", "ESTIMATOR")
-        :param scorer: SKLearn compatible scorer, default None. If None defaults to F1 score.
+        :param scorer: SKLearn compatible scorer, default None. If None defaults to accuracy score.
 
     Examples
     --------
@@ -125,6 +145,30 @@ class SibylClassifier(SibylBase):
 
 
 class SibylRegressor(SibylBase):
+    """
+            Set up the SybilClassifier with the desired steps
+
+            :param steps: List of tuples, default None. If None it defaults to the following steps:
+            [("omni", OmniEncoder()), ("pca", PCA()), ("model", KerasDenseRegressor())].
+            Same as Pipeline, accepts a list of tuples ("STEP_NAME", "ESTIMATOR")
+            :param scorer: SKLearn compatible scorer, default None. If None defaults to R2 score.
+
+        Examples
+        --------
+        >>> from sklearn.svm import SVR
+        >>> from sklearn.preprocessing import StandardScaler
+        >>> from sklearn.datasets import make_classification
+        >>> from sklearn.model_selection import train_test_split
+        >>> from sklearn.pipeline import Pipeline
+        >>> X, y = make_regression(random_state=0)
+        >>> X_train, X_test, y_train, y_test = train_test_split(X, y,
+        ...                                                     random_state=0)
+        >>> pipe = Pipeline([('scaler', StandardScaler()), ('svr', SVR())])
+        >>> pipe.fit(X_train, y_train)
+        Pipeline(steps=[('scaler', StandardScaler()), ('svr', SVR())])
+        >>> pipe.score(X_test, y_test)
+        0.88
+        """
     def __init__(self, steps=None, scorer=None):
         if steps is None:
             steps = [("omni", OmniEncoder()),
