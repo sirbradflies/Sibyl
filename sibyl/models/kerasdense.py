@@ -15,12 +15,12 @@ from sklearn.preprocessing import OneHotEncoder
 from tensorflow.keras.layers import Dense, Flatten, BatchNormalization, Dropout
 from tensorflow.keras.callbacks import EarlyStopping, TensorBoard
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
-#keras.backend.set_floatx("float32")  # TODO: Fix issue with nan loss
 
-TMP_PATH = os.path.join(tempfile.gettempdir(), "state")  # TODO: Use tempfile.TemporaryFile?
+TMP_PATH = os.path.join(tempfile.gettempdir(), "sibyl_temp")
 
 
-# TODO: Refactor with Estimator template: https://github.com/scikit-learn-contrib/project-template/blob/master/skltemplate/_template.py
+# TODO: Refactor with Estimator template:
+#  https://github.com/scikit-learn-contrib/project-template/blob/master/skltemplate/_template.py
 class KerasDenseRegressor(BaseEstimator, RegressorMixin):
     def __init__(self, units=(64, 64), dropout=0, activation="relu",
                  batch_norm=False, batch_size=None, optimizer="nadam",
@@ -119,7 +119,7 @@ class KerasDenseClassifier(KerasDenseRegressor, ClassifierMixin):
                  kernel_init="glorot_normal", val_split=0, epochs=10,
                  loss="categorical_crossentropy", out_act="softmax",
                  n_iter_no_change=None, tensorboard=False,
-                 custom_objects = None, _estimator_type="regressor"):
+                 custom_objects=None, _estimator_type="classifier"):
         self.encoder = OneHotEncoder()
         super().__init__(units=units, dropout=dropout,
                          activation=activation, batch_norm=batch_norm,

@@ -5,14 +5,14 @@ CatBoost wrapper to simplify early stopping
 @creation date: 21/02/2020
 """
 
-from catboost import CatBoostRegressor, CatBoostClassifier
 from sklearn.model_selection import train_test_split
+from catboost import CatBoostRegressor, CatBoostClassifier
 
 
 class CBoostRegressorWrapper(CatBoostRegressor):
     def fit(self, x, y):
         if "early_stopping_rounds" in self.get_params():
-            x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.1)
+            x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, shuffle=True)
             return super().fit(x_train, y_train, eval_set=(x_val, y_val))
         else:
             return super().fit(x, y)
@@ -21,7 +21,7 @@ class CBoostRegressorWrapper(CatBoostRegressor):
 class CBoostClassifierWrapper(CatBoostClassifier):
     def fit(self, x, y):
         if "early_stopping_rounds" in self.get_params():
-            x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.1)
+            x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, shuffle=True)
             return super().fit(x_train, y_train, eval_set=(x_val, y_val))
         else:
             return super().fit(x, y)

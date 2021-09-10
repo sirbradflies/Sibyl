@@ -1,9 +1,10 @@
 joblib
-numpy
-pandas
+numpy>=1.0.0
+pandas>=1.0.0
 scipy
 scikit-learn
-tensorflow
+tensorflow>=2.0.0
 catboost
+xgboost
 seaborn
-matplotlib
+matplotlib>=1.0.0
