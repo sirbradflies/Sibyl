@@ -20,7 +20,7 @@ TMP_PATH = os.path.join(tempfile.gettempdir(), "sibyl_temp")
 
 
 # TODO: Refactor with Estimator template:
-#  https://github.com/scikit-learn-contrib/project-template/blob/master/skltemplate/_template.py
+# https://github.com/scikit-learn-contrib/project-template/blob/master/skltemplate/_template.py
 class KerasDenseRegressor(BaseEstimator, RegressorMixin):
     def __init__(self, units=(64, 64), dropout=0, activation="relu",
                  batch_norm=False, batch_size=None, optimizer="nadam",
@@ -58,7 +58,7 @@ class KerasDenseRegressor(BaseEstimator, RegressorMixin):
             calls += [EarlyStopping(monitor=early_stop_metric,
                                     patience=self.n_iter_no_change,
                                     restore_best_weights=True)]
-        return self.model.fit(X_val, y_val, epochs=self.epochs,
+        return self.model.fit(X_val, y_val, epochs=self.epochs, verbose=0,
                               callbacks=calls, validation_split=self.val_split)
 
     def predict(self, X):
