@@ -5,6 +5,6 @@ scipy
 scikit-learn
 tensorflow>=2.0.0
 catboost
-xgboost
+lightgbm
 seaborn
 matplotlib>=1.0.0
