@@ -6,6 +6,7 @@ Generic regression model for machine learning problems based on Keras
 """
 
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import scipy
 import shutil
 import tempfile
