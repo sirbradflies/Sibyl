@@ -15,7 +15,7 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import accuracy_score, r2_score, make_scorer
 
 from sibyl.encoders.omniencoder import OmniEncoder
-from sibyl.models.kerasdense import KerasDenseRegressor, KerasDenseClassifier
+from sibyl.models.kerasmodels import KerasDenseRegressor, KerasDenseClassifier
 
 PARAMS = {"pca__n_components": [None, 0.99, 0.90],
           "model__units": [(64,), (64, 64), (64, 64, 64)],

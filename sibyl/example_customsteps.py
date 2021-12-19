@@ -10,7 +10,7 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 
 from sibyl import predictor as pred
-from sibyl.models import kerasdense as kd
+from sibyl.models import kerasmodels as kd
 
 STEPS = [("preprocessing", PCA()),
          ("model", kd.KerasDenseClassifier(n_iter_no_change=1,

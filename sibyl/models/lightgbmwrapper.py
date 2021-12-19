@@ -15,7 +15,7 @@ class LGBMRegressorWrapper(lgb.LGBMRegressor):
         rounds = int(log10(self.n_estimators))
         x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2)
         return super().fit(x_train, y_train, eval_set=[(x_val, y_val)],
-                           callbacks=[lgb.early_stopping(rounds, verbose=False)])
+                           verbose=False, callbacks=[lgb.early_stopping(rounds)])
 
 
 class LGBMClassifierWrapper(lgb.LGBMClassifier):
@@ -23,4 +23,4 @@ class LGBMClassifierWrapper(lgb.LGBMClassifier):
         rounds = int(log10(self.n_estimators))
         x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2)
         return super().fit(x_train, y_train, eval_set=[(x_val, y_val)],
-                           callbacks=[lgb.early_stopping(rounds, verbose=False)])
+                           verbose=False, callbacks=[lgb.early_stopping(rounds)])
