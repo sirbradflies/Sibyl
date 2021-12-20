@@ -8,6 +8,8 @@ Generic regression model for machine learning problems based on Keras
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import scipy
+import shutil
+import tempfile
 import numpy as np
 from tensorflow import keras
 from sklearn.preprocessing import OneHotEncoder
@@ -15,6 +17,8 @@ from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from tensorflow.keras.layers import Dense, Flatten, BatchNormalization, \
     Dropout, Conv1D, Reshape
+
+TMP_PATH = os.path.join(tempfile.gettempdir(), "sibyl_temp")
 
 
 # TODO: Refactor with Estimator template:
@@ -72,6 +76,29 @@ class KerasDenseRegressor(BaseEstimator, RegressorMixin):
         self.model.compile(loss=self.loss,
                            optimizer=self.optimizer,
                            metrics=metrics)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        if self.model is not None:
+            keras.models.save_model(self.model, TMP_PATH, save_format="tf")
+            shutil.make_archive(TMP_PATH, "zip", TMP_PATH)
+            shutil.rmtree(TMP_PATH)
+            with open(f"{TMP_PATH}.zip", mode="rb") as temp:
+                state["model"] = temp.read()
+            os.remove(f"{TMP_PATH}.zip")
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        if state["model"] is not None:
+            with open(f"{TMP_PATH}.zip", mode="wb") as temp:
+                temp.write(state["model"])
+                temp.flush()
+            shutil.unpack_archive(f"{TMP_PATH}.zip", TMP_PATH)
+            os.remove(f"{TMP_PATH}.zip")
+            self.model = keras.models.load_model(TMP_PATH,
+                                                 custom_objects=self.custom_objects)
+            shutil.rmtree(TMP_PATH)
 
 
 class KerasDenseClassifier(KerasDenseRegressor, ClassifierMixin):
