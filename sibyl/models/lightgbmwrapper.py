@@ -14,13 +14,15 @@ class LGBMRegressorWrapper(lgb.LGBMRegressor):
     def fit(self, x, y):
         rounds = int(log10(self.n_estimators))
         x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2)
+        callbacks = [lgb.early_stopping(rounds), lgb.log_evaluation(period=0)]
         return super().fit(x_train, y_train, eval_set=[(x_val, y_val)],
-                           callbacks=[lgb.early_stopping(rounds)])
+                           callbacks=callbacks)
 
 
 class LGBMClassifierWrapper(lgb.LGBMClassifier):
     def fit(self, x, y):
-        rounds = int(log10(self.n_estimators))
         x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2)
+        rounds = int(log10(self.n_estimators))
+        callbacks = [lgb.early_stopping(rounds), lgb.log_evaluation(period=0)]
         return super().fit(x_train, y_train, eval_set=[(x_val, y_val)],
-                           callbacks=[lgb.early_stopping(rounds)])
+                           callbacks=callbacks)

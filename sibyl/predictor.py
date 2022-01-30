@@ -11,7 +11,7 @@ import joblib
 import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import accuracy_score, r2_score, make_scorer
 
 from sibyl.encoders.omniencoder import OmniEncoder
@@ -23,21 +23,8 @@ PARAMS = {"pca__n_components": [None, 0.99, 0.90],
 
 
 class SibylBase(Pipeline):
-    """
-    Simple AutoML class to solve basic ML tasks.
-
-    :param steps : list
-    List of (name, transform) tuples (implementing fit/transform)
-    with the last object an estimator.
-    :param scorer : str or Scorer
-    Scorer for model cross validation.
-    """
-    def __init__(self, steps, scorer):
-        self.scorer = scorer
-        super(SibylBase, self).__init__(steps)
-
-    def search(self, X, y, params=PARAMS, groups=None,
-               cv=None, n_iter=10, n_jobs=-1):
+    def search(self, X, y, params=PARAMS, groups=None, refit=True,
+               scoring=None, cv=None, n_jobs=-1):
         """
         Random search for the best model and return the search results
 
@@ -50,27 +37,27 @@ class SibylBase(Pipeline):
         >>>{"pca__n_components": [None, 0.99, 0.90],
         >>> "model__units": [(64,), (64, 64), (64, 64, 64)],
         >>> "model__batch_norm": [True, False]}
-        Search parameters to be used with the pipeline as in SKLearn RandomizedGridSearchCV.
+        Search parameters to be used with the pipeline as in SKLearn GridSearchCV.
         Required if the pipeline steps are customized.
         :param groups : array-like of shape (n_samples,), default=None
         Group labels for the samples used while splitting the dataset into train/test set.
-        :param cv : int, cross-validation generator or an iterable, default=None
-        Cross-validation splitting strategy (see SciKit learn docs for more details)
-        :param n_iter : int, default=10
-        Number of parameter settings that are sampled (see SciKit learn docs for more details).
+        : param refit : bool, str, or callable, default=True
+        Refit an estimator using the best found parameters on the whole dataset.
+        :param scoring : gstr, callable, list, tuple or dict, default=None
+        Strategy to evaluate the performance of the cross-validated model on the test set.
+        :param cv: int, cross-validation generator or an iterable, default=None
+        Determines the cross-validation splitting strategy.
         :param n_jobs : int, default=-1
         Number of jobs to run in parallel. None means 1 unless in a
         joblib.parallel_backend context. -1 means using all processors.
         :return Dataframe with search results
         """
-        search = RandomizedSearchCV(self, params, scoring=self.scorer,
-                                    refit=False, verbose=5, cv=cv,
-                                    n_iter=n_iter, n_jobs=n_jobs)
+        search = GridSearchCV(self, params, refit=refit, scoring=scoring,
+                              verbose=2, cv=cv, n_jobs=n_jobs)
         search.fit(X, y, groups=groups)
-        self.set_params(**search.best_params_).fit(X, y)
-        results = pd.DataFrame(search.cv_results_).sort_values("rank_test_score")
-        return results[["params", "mean_test_score",
-                        "std_test_score", "mean_fit_time"]]
+        self.set_params(**search.best_params_).fit(X, y)  # TODO: Double fit! Remove
+        results = pd.DataFrame(search.cv_results_)
+        return results
 
     def score(self, X, y):
         """ Score features X against target y """
@@ -134,14 +121,12 @@ class SibylClassifier(SibylBase):
     >>> pipe.score(X_test, y_test)
     0.88
     """
-    def __init__(self, steps=None, scorer=None):
+    def __init__(self, steps=None):
         if steps is None:
             steps = [("omni", OmniEncoder()),
                      ("pca", PCA()),
                      ("model", KerasDenseClassifier())]
-        if scorer is None:
-            scorer = make_scorer(accuracy_score)
-        super(SibylClassifier, self).__init__(steps=steps, scorer=scorer)
+        super(SibylClassifier, self).__init__(steps=steps)
 
 
 class SibylRegressor(SibylBase):
@@ -169,11 +154,9 @@ class SibylRegressor(SibylBase):
         >>> pipe.score(X_test, y_test)
         0.88
         """
-    def __init__(self, steps=None, scorer=None):
+    def __init__(self, steps=None):
         if steps is None:
             steps = [("omni", OmniEncoder()),
                      ("pca", PCA()),
                      ("model", KerasDenseRegressor())]
-        if scorer is None:
-            scorer = make_scorer(r2_score)
-        super(SibylRegressor, self).__init__(steps=steps, scorer=scorer)
+        super(SibylRegressor, self).__init__(steps=steps)

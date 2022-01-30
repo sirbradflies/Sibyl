@@ -9,6 +9,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import scipy
 import shutil
+import random
 import tempfile
 import numpy as np
 from tensorflow import keras
@@ -16,8 +17,6 @@ from tensorflow.keras import layers as kl
 from sklearn.preprocessing import LabelBinarizer
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
-
-TMP_PATH = os.path.join(tempfile.gettempdir(), "sibyl_temp")
 
 
 # TODO: Refactor with Estimator template:
@@ -52,15 +51,20 @@ class KerasDenseRegressor(BaseEstimator, RegressorMixin):
             [EarlyStopping(monitor="val_loss" if self.val_split > 0 else "loss",
                            patience=self.n_iter_no_change,
                            restore_best_weights=True)]
-        return self.model.fit(X_val, y_val, epochs=self.epochs, verbose=0,
-                              callbacks=calls, validation_split=self.val_split)
+        try:
+            return self.model.fit(X_val, y_val, epochs=self.epochs, verbose=0,
+                                  callbacks=calls, validation_split=self.val_split)
+        except Exception as e:
+            return None
 
     def predict(self, X):
         return self.model.predict(_validate_array(X))
 
     def _build_model(self, X, y, out_act, loss, metrics):
         """ Build Keras model according to input parameters """
-        layers = [kl.Flatten()] if len(X.shape[1:]) > 1 else []
+        in_shape = X.shape[1] if len(X.shape) > 1 else 1
+        layers = [kl.InputLayer(in_shape)]
+        #layers = [kl.Flatten()] if len(X.shape[1:]) > 1 else []
         for units in self.units:
             if self.dropout > 0: layers += [kl.Dropout(self.dropout)]
             layers += [kl.Dense(units, activation=self.activation,
@@ -70,30 +74,52 @@ class KerasDenseRegressor(BaseEstimator, RegressorMixin):
         layers += [kl.Dense(out_shape, activation=out_act)]
         self.model = keras.models.Sequential(layers)
         self.model.compile(loss=loss, metrics=metrics,
-                           optimizer=self.optimizer,)
+                           optimizer=self.optimizer)
 
     def __getstate__(self):
         state = self.__dict__.copy()
         if self.model is not None:
-            keras.models.save_model(self.model, TMP_PATH, save_format="tf")
-            shutil.make_archive(TMP_PATH, "zip", TMP_PATH)
-            shutil.rmtree(TMP_PATH)
-            with open(f"{TMP_PATH}.zip", mode="rb") as temp:
+            temp = tempfile.NamedTemporaryFile(delete=False, suffix=".h5")
+            keras.models.save_model(self.model, temp.name)
+            with temp:
                 state["model"] = temp.read()
-            os.remove(f"{TMP_PATH}.zip")
+            os.remove(temp.name)
         return state
 
     def __setstate__(self, state):
         self.__dict__ = state
         if state["model"] is not None:
-            with open(f"{TMP_PATH}.zip", mode="wb") as temp:
+            temp = tempfile.NamedTemporaryFile(delete=False, suffix=".h5")
+            with temp:
+                temp.write(state["model"])
+            self.model = keras.models.load_model(temp.name,
+                                                 custom_objects=self.custom_objects)
+            os.remove(temp.name)
+
+    """def __getstate__(self):
+        tmp_path = os.path.join(tempfile.gettempdir(), "sibyl_temp")
+        state = self.__dict__.copy()
+        if self.model is not None:
+            keras.models.save_model(self.model, tmp_path, save_format="tf")
+            shutil.make_archive(tmp_path, "zip", tmp_path)
+            shutil.rmtree(tmp_path)
+            with open(f"{tmp_path}.zip", mode="rb") as temp:
+                state["model"] = temp.read()
+            os.remove(f"{tmp_path}.zip")
+        return state
+
+    def __setstate__(self, state):
+        tmp_path = os.path.join(tempfile.gettempdir(), "sibyl_temp")
+        self.__dict__ = state
+        if state["model"] is not None:
+            with open(f"{tmp_path}.zip", mode="wb") as temp:
                 temp.write(state["model"])
                 temp.flush()
-            shutil.unpack_archive(f"{TMP_PATH}.zip", TMP_PATH)
-            os.remove(f"{TMP_PATH}.zip")
-            self.model = keras.models.load_model(TMP_PATH,
+            shutil.unpack_archive(f"{tmp_path}.zip", tmp_path)
+            os.remove(f"{tmp_path}.zip")
+            self.model = keras.models.load_model(tmp_path,
                                                  custom_objects=self.custom_objects)
-            shutil.rmtree(TMP_PATH)
+            shutil.rmtree(tmp_path)"""
 
 
 class KerasDenseClassifier(KerasDenseRegressor, ClassifierMixin):
